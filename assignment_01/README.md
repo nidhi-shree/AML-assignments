@@ -31,8 +31,9 @@ It's a dataset that respects the theory while staying connected to something rea
 
 ```
 .
-├── exoplanet_candidate_elimination.py   # Main implementation — run this
-└── README.md                            # You're reading it
+├── exoplanet_candidate_elimination.py          # Main implementation — run this
+├── Exoplanet_Habitability_FindS_CE_Report.pdf  # Report
+└── README.md                                   # You're reading it
 ```
 
 ---
@@ -214,4 +215,3 @@ The "Uncertain" results are actually meaningful — they tell you the algorithm 
 - The `F-Type` star label for HAT-P-7b is treated as a distinct category in this study, since F-type stars are hotter and shorter-lived than G-type stars and represent a meaningfully different habitability environment.
 
 ---
-
