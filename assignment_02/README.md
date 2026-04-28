@@ -15,10 +15,11 @@
 - **Starry UI Engine**: A custom HTML5 Canvas constellation background that reacts to model selection.
 - **Progressive Web App (PWA)**: Fully installable dashboard with offline caching capabilities.
 
-## 🖼️ Gallery
+## 🖼️ Screenshots![alt text](image.png)
 
 <p align="center">
   <img src="screenshots/Screenshot%202026-04-29%20020122.png" width="400" alt="Dashboard Overview">
+  <img src="screenshots/image.png" width="400" alt="Performance Metrics">
   <img src="screenshots/Screenshot%202026-04-29%20020137.png" width="400" alt="Performance Metrics">
   <img src="screenshots/Screenshot%202026-04-29%20020206.png" width="400" alt="XAI SHAP Explanations">
   <img src="screenshots/Screenshot%202026-04-29%20020222.png" width="400" alt="Extracted Logic Rules">
