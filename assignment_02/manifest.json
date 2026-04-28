@@ -1,0 +1,15 @@
+{
+  "name": "NeuralTree Decision Models",
+  "short_name": "NeuralTree",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#040714",
+  "background_color": "#040714",
+  "icons": [
+    {
+      "src": "https://placehold.co/512x512/040714/14B8A6?text=NT",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

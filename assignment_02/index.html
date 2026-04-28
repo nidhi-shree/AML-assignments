@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#040714">
+  <meta name="description" content="NeuralTree - Decision Tree XAI Dashboard">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌲</text></svg>">
+  <title>NeuralTree | Decision Trees, Explained</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-deep: #040714;
+      --bg-surface: #0f152b;
+      --bg-card: rgba(15, 21, 43, 0.6);
+      --border-glow: #1e294b;
+      --accent-teal: #14B8A6;
+      --accent-indigo: #6366F1;
+      --accent-amber: #F59E0B;
+      --accent-rose: #F43F5E;
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      
+      --font-main: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-serif: 'Playfair Display', serif;
+      
+      --transition-smooth: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(20, 184, 166, 0.4); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-teal); }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Background Canvas */
+    .bg-canvas {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 0;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    #app {
+      position: relative;
+      z-index: 2;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navbar */
+    nav {
+      padding: 1.5rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      background: rgba(4, 7, 20, 0.5);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent-teal), var(--accent-indigo));
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: var(--transition-smooth);
+    }
+
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--text-primary);
+    }
+
+    /* Layout & Sections */
+    .section {
+      display: none;
+      padding: 3rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      animation: fadeIn 0.4s ease forwards;
+    }
+    
+    .section.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Hero Section (Overview) */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      min-height: calc(100vh - 100px);
+    }
+
+    .hero-subtitle {
+      color: var(--accent-teal);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 2rem;
+    }
+    .hero-subtitle::before {
+      content: "";
+      width: 30px; height: 2px;
+      background: var(--accent-teal);
+    }
+
+    .hero-title {
+      font-family: var(--font-serif);
+      font-size: 5rem;
+      line-height: 1.1;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title .italic-glow {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--accent-teal), var(--accent-amber));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      display: inline-block;
+    }
+
+    .hero-desc {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      line-height: 1.7;
+      max-width: 85%;
+      margin-bottom: 3rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    .btn {
+      padding: 0.8rem 1.8rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: var(--transition-smooth);
+      border: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-teal), #0f766e);
+      color: white;
+      box-shadow: 0 4px 15px rgba(20, 184, 166, 0.3);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(20, 184, 166, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: rgba(30, 41, 75, 0.5);
+      border: 1px solid var(--border-glow);
+      color: var(--text-primary);
+      backdrop-filter: blur(8px);
+    }
+    .btn-secondary:hover {
+      background: rgba(30, 41, 75, 0.8);
+      border-color: var(--accent-indigo);
+      transform: translateY(-2px);
+    }
+
+    /* Glassy Card for Model List */
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      padding: 2rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .card-header {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--accent-indigo);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card-header::before {
+      content: ""; width: 3px; height: 12px; background: var(--accent-indigo);
+    }
+
+    .model-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .model-item {
+      background: rgba(11, 17, 32, 0.5);
+      border: 1px solid rgba(255,255,255,0.03);
+      padding: 1rem 1.2rem;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: var(--transition-smooth);
+    }
+    .model-item:hover {
+      background: rgba(20, 184, 166, 0.05);
+      border-color: rgba(20, 184, 166, 0.3);
+      transform: translateX(4px);
+    }
+
+    .model-name {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .model-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent-teal);
+      box-shadow: 0 0 8px var(--accent-teal);
+    }
+    .model-metric {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--accent-teal);
+      font-weight: 600;
+    }
+
+    /* General Components */
+    .chart-wrap {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border-glow);
+      backdrop-filter: blur(12px);
+    }
+    
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
+      font-weight: 700;
+    }
+
+    /* Table styling */
+    table {
+      width: 100%; border-collapse: collapse; font-size: 0.9rem;
+    }
+    th {
+      text-align: left; padding: 1rem; color: var(--text-secondary);
+      font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase;
+      border-bottom: 1px solid var(--border-glow);
+    }
+    td {
+      padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Chatbot */
+    .chat-fab {
+      position: fixed; bottom: 30px; right: 30px;
+      width: 60px; height: 60px;
+      background: linear-gradient(135deg, var(--accent-teal), var(--accent-indigo));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(20, 184, 166, 0.4);
+      z-index: 200;
+      transition: var(--transition-smooth);
+      font-size: 1.4rem; color: white;
+    }
+    .chat-fab:hover { transform: scale(1.08) translateY(-4px); }
+
+    .chat-panel {
+      position: fixed; bottom: 110px; right: 30px;
+      width: 380px; max-width: calc(100vw - 40px);
+      background: rgba(15, 21, 43, 0.85);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      display: none; flex-direction: column;
+      z-index: 201;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    .chat-panel.open { display: flex; animation: slideUp 0.3s cubic-bezier(0.2,0.8,0.2,1); }
+
+    .chat-header {
+      padding: 1rem 1.25rem;
+      background: rgba(20, 184, 166, 0.1);
+      border-bottom: 1px solid var(--border-glow);
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 600; font-size: 0.9rem;
+    }
+    
+    .chat-messages {
+      height: 320px; overflow-y: auto; padding: 1rem;
+      display: flex; flex-direction: column; gap: 1rem;
+      font-size: 0.9rem;
+    }
+    
+    .msg-user {
+      align-self: flex-end; background: var(--accent-indigo);
+      padding: 0.6rem 1rem; border-radius: 16px 16px 0 16px;
+      max-width: 85%;
+    }
+    .msg-ai {
+      align-self: flex-start; background: rgba(30, 41, 75, 0.6);
+      border: 1px solid var(--border-glow);
+      padding: 0.6rem 1rem; border-radius: 16px 16px 16px 0;
+      max-width: 90%; line-height: 1.5;
+      word-wrap: break-word; overflow-wrap: break-word;
+    }
+    
+    .chat-input-area {
+      padding: 1rem; border-top: 1px solid var(--border-glow);
+      display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2);
+    }
+    
+    .chat-input-area input {
+      flex: 1; background: rgba(11, 17, 32, 0.8);
+      border: 1px solid var(--border-glow); padding: 0.8rem 1rem;
+      border-radius: 30px; color: white; outline: none; font-family: var(--font-main);
+    }
+    .chat-input-area input:focus { border-color: var(--accent-teal); }
+    
+    .chat-input-area button {
+      background: var(--accent-teal); color: white; border: none;
+      width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: 0.2s;
+    }
+    .chat-input-area button:hover { background: #0f766e; transform: scale(1.05); }
+
+    /* Model Tabs */
+    .model-tabs {
+      display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 2rem;
+    }
+    .model-tab {
+      background: rgba(30, 41, 75, 0.3); border: 1px solid var(--border-glow);
+      padding: 0.5rem 1.2rem; border-radius: 30px; color: var(--text-secondary);
+      font-family: var(--font-mono); font-size: 0.8rem; cursor: pointer; transition: 0.2s;
+    }
+    .model-tab.active, .model-tab:hover {
+      background: rgba(20, 184, 166, 0.15); border-color: var(--accent-teal); color: var(--accent-teal);
+    }
+
+    /* Layout Grids */
+    .two-col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
+    }
+
+    @media (max-width: 992px) {
+      .hero-grid, .two-col { grid-template-columns: 1fr; gap: 2rem; }
+      .hero-title { font-size: 3.5rem; }
+      nav { padding: 1rem; }
+      .nav-links { display: none; }
+      .section { padding: 2rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Animated Starry / Node Background -->
+<canvas id="bgCanvas" class="bg-canvas"></canvas>
+
+<div id="app">
+  <nav>
+    <div class="logo">
+      <div class="logo-icon"><i class="fa-solid fa-network-wired"></i></div>
+      NeuralTree
+    </div>
+    <div class="nav-links">
+      <a href="#" class="nav-link active" data-section="overview">Overview</a>
+      <a href="#" class="nav-link" data-section="compare">Compare</a>
+      <a href="#" class="nav-link" data-section="xai">XAI</a>
+      <a href="#" class="nav-link" data-section="rules">Rules</a>
+      <a href="#" class="nav-link" data-section="complexity">Complexity</a>
+    </div>
+  </nav>
+
+  <!-- OVERVIEW SECTION (HERO) -->
+  <div id="overview" class="section active">
+    <div class="hero-grid">
+      <div class="hero-content">
+        <div class="hero-subtitle">Heart Disease UCI · Decision Tree Models</div>
+        <h1 class="hero-title">Decision Trees,<br><span class="italic-glow">Explained</span></h1>
+        <p class="hero-desc">
+          A comprehensive XAI dashboard comparing cutting-edge tree-based classifiers on clinical data. 
+          Featuring SHAP explainability, animated structural visualisations, and an AI assistant powered by Gemini.
+        </p>
+        <div class="hero-actions">
+          <a href="#" class="btn btn-primary" onclick="document.querySelector('[data-section=\'compare\']').click()"><i class="fa-solid fa-bolt"></i> Compare Models</a>
+          <a href="#" class="btn btn-secondary" onclick="document.querySelector('[data-section=\'xai\']').click()"><i class="fa-solid fa-brain"></i> Explore XAI</a>
+        </div>
+      </div>
+      
+      <div class="hero-visual">
+        <div class="glass-card">
+          <div class="card-header">Live Model Performance</div>
+          <div class="model-list" id="heroModelList">
+            <!-- Dynamically populated -->
+            <div style="color: var(--text-secondary); text-align: center; padding: 2rem;">
+              <i class="fa-solid fa-circle-notch fa-spin"></i> Loading metrics...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARE SECTION -->
+  <div id="compare" class="section">
+    <h2>Model Benchmark <span style="color: var(--accent-teal); font-style: italic;">Matrix</span></h2>
+    
+    <div class="chart-wrap" style="overflow-x: auto;">
+      <table id="compTable">
+        <thead><tr><th>Model Architecture</th><th>Accuracy</th><th>F1 Score</th><th>AUC ROC</th><th>Training Time</th><th>Complexity</th></tr></thead>
+        <tbody id="compBody"></tbody>
+      </table>
+    </div>
+    
+    <div class="two-col">
+      <div class="chart-wrap">
+        <div class="card-header"><i class="fa-solid fa-chart-line"></i> AUC-ROC Curves</div>
+        <div style="position: relative; height: 280px; width: 100%;"><canvas id="rocAll"></canvas></div>
+      </div>
+      <div class="chart-wrap">
+        <div class="card-header"><i class="fa-solid fa-bullseye"></i> Accuracy Comparison</div>
+        <div style="position: relative; height: 280px; width: 100%;"><canvas id="accChart"></canvas></div>
+      </div>
+    </div>
+    
+    <!-- Dynamic SVG Tree Animation -->
+    <div class="chart-wrap" style="position: relative; overflow: hidden; margin-top: 2rem;">
+      <div class="card-header"><i class="fa-solid fa-diagram-project"></i> Dynamic Algorithm Flow Visualization</div>
+      <div class="tree-anim-container" style="display: flex; justify-content: center; padding: 2rem 0;">
+        <svg viewBox="0 0 800 320" width="100%" height="280px" style="max-width: 800px;">
+          <defs>
+            <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+          </defs>
+          
+          <!-- Nodes -->
+          <rect x="340" y="20" width="120" height="46" rx="8" fill="var(--bg-surface)" stroke="var(--accent-teal)" stroke-width="2"/>
+          <text x="400" y="48" fill="var(--text-primary)" text-anchor="middle" font-family="var(--font-main)" font-weight="600" font-size="14">Chest Pain (cp)</text>
+
+          <rect x="190" y="120" width="120" height="46" rx="8" fill="var(--bg-surface)" stroke="var(--accent-indigo)" stroke-width="2"/>
+          <text x="250" y="148" fill="var(--text-primary)" text-anchor="middle" font-family="var(--font-main)" font-weight="600" font-size="14">Thalassemia</text>
+
+          <rect x="490" y="120" width="120" height="46" rx="8" fill="var(--bg-surface)" stroke="var(--accent-indigo)" stroke-width="2"/>
+          <text x="550" y="148" fill="var(--text-primary)" text-anchor="middle" font-family="var(--font-main)" font-weight="600" font-size="14">Max Heart Rate</text>
+
+          <!-- Leaves -->
+          <circle cx="150" cy="250" r="35" fill="rgba(244, 63, 94, 0.1)" stroke="var(--accent-rose)" stroke-width="2"/>
+          <text x="150" y="255" fill="var(--accent-rose)" text-anchor="middle" font-weight="700" font-size="14">Disease</text>
+          
+          <circle cx="260" cy="250" r="35" fill="rgba(20, 184, 166, 0.1)" stroke="var(--accent-teal)" stroke-width="2"/>
+          <text x="260" y="255" fill="var(--accent-teal)" text-anchor="middle" font-weight="700" font-size="14">Healthy</text>
+
+          <circle cx="550" cy="250" r="35" fill="rgba(244, 63, 94, 0.1)" stroke="var(--accent-rose)" stroke-width="2"/>
+          <text x="550" y="255" fill="var(--accent-rose)" text-anchor="middle" font-weight="700" font-size="14">Disease</text>
+
+          <!-- Paths -->
+          <path d="M 380 66 L 250 120" stroke="var(--border-glow)" stroke-width="3" fill="none"/>
+          <path d="M 420 66 L 550 120" stroke="var(--border-glow)" stroke-width="3" fill="none"/>
+          <path d="M 230 166 L 150 215" stroke="var(--border-glow)" stroke-width="3" fill="none"/>
+          <path d="M 270 166 L 260 215" stroke="var(--border-glow)" stroke-width="3" fill="none"/>
+          <path d="M 550 166 L 550 215" stroke="var(--border-glow)" stroke-width="3" fill="none"/>
+
+          <!-- Animated Data Packets -->
+          <circle r="5" fill="var(--accent-teal)" filter="url(#glow)">
+            <animateMotion dur="2s" repeatCount="indefinite" path="M 380 66 L 250 120"/>
+          </circle>
+          <circle r="5" fill="var(--accent-indigo)" filter="url(#glow)">
+            <animateMotion dur="2.5s" repeatCount="indefinite" path="M 420 66 L 550 120"/>
+          </circle>
+          <circle r="5" fill="var(--accent-rose)" filter="url(#glow)">
+            <animateMotion dur="1.8s" repeatCount="indefinite" path="M 230 166 L 150 215"/>
+          </circle>
+          <circle r="5" fill="var(--accent-teal)" filter="url(#glow)">
+            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 270 166 L 260 215"/>
+          </circle>
+           <circle r="5" fill="var(--accent-rose)" filter="url(#glow)">
+            <animateMotion dur="1.5s" repeatCount="indefinite" path="M 550 166 L 550 215"/>
+          </circle>
+        </svg>
+      </div>
+      <div style="text-align:center; font-family:var(--font-mono); font-size:0.8rem; color:var(--text-secondary);">
+        Simulating decision splits and information gain logic across hierarchical nodes.
+      </div>
+    </div>
+  </div>
+
+  <!-- XAI SECTION -->
+  <div id="xai" class="section">
+    <h2>Global SHAP <span style="color: var(--accent-teal); font-style: italic;">Explainability</span></h2>
+    <div class="model-tabs" id="xaiModelTabs"></div>
+    <div class="two-col">
+      <div class="chart-wrap">
+        <div class="card-header"><i class="fa-solid fa-align-left"></i> Feature Importance</div>
+        <div id="shapContainer"></div>
+      </div>
+      <div class="glass-card" style="align-self: start;">
+        <div class="card-header"><i class="fa-solid fa-lightbulb"></i> Insight</div>
+        <p style="color: var(--text-secondary); line-height: 1.7;" id="shapText">
+          Positive SHAP values drive the model toward a "Heart Disease" prediction. Across tree ensembles, features like Chest Pain Type and Thalassemia consistently yield the highest Information Gain.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RULES SECTION -->
+  <div id="rules" class="section">
+    <h2>Interpretable <span style="color: var(--accent-teal); font-style: italic;">Decision Paths</span></h2>
+    <div class="glass-card">
+      <div class="card-header"><i class="fa-solid fa-code"></i> Extracted Rules</div>
+      <div id="rulesContent" style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-glow); overflow-x: auto;">
+        <pre style="font-family: var(--font-mono); font-size: 0.8rem; color: #818cf8; white-space: pre-wrap;">Loading rules...</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLEXITY SECTION -->
+  <div id="complexity" class="section">
+    <h2>Algorithmic <span style="color: var(--accent-teal); font-style: italic;">Complexity</span></h2>
+    <div class="two-col" style="margin-bottom: 2rem;" id="complexityGrid"></div>
+    <div class="chart-wrap">
+      <div class="card-header"><i class="fa-solid fa-stopwatch"></i> Empirical Training Time (ms)</div>
+      <div style="position: relative; height: 200px; width: 100%;"><canvas id="timeChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- GEMINI CHATBOT -->
+  <div class="chat-fab" id="chatFab"><i class="fa-solid fa-robot"></i></div>
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <span style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-sparkles" style="color: var(--accent-amber);"></i> NeuralTree Assistant</span>
+      <i class="fa-solid fa-xmark" id="closeChat" style="cursor:pointer; font-size: 1.2rem;"></i>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg-ai"><i class="fa-solid fa-robot" style="margin-right: 5px; color: var(--accent-teal);"></i> Hello! I'm the NeuralTree Assistant. How can I help you analyze the models today?</div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="chatInput" placeholder="Ask about SHAP, AUC, Complexities...">
+      <button id="sendChatBtn"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let MODELS_DATA = {};
+  let SHAP_VALS = {};
+  let RULES_TXT = {};
+  let activeChart = {};
+  let currentXaiModel = "XGBoost";
+  let geminiSystemPrompt = "";
+
+  function destroyChart(id) { if(activeChart[id]) { activeChart[id].destroy(); delete activeChart[id]; } }
+
+  async function loadData() {
+    try {
+      const res = await fetch('/results.json');
+      if (!res.ok) throw new Error("Could not fetch results.json");
+      const data = await res.json();
+      
+      // Map models
+      Object.keys(data.models).forEach(key => {
+        const m = data.models[key];
+        MODELS_DATA[key] = {
+          acc: m.accuracy, f1: m.f1, auc: m.auc, time_ms: m.time_ms, complexity: m.complexity,
+          cv: m.cv_mean, prec: m.precision, rec: m.recall, roc_fpr: m.roc_fpr, roc_tpr: m.roc_tpr
+        };
+      });
+
+      SHAP_VALS = data.shap;
+      RULES_TXT = data.tree_rules;
+
+      // Generate dynamic prompt
+      const best = data.best_model;
+      geminiSystemPrompt = `You are NeuralTree Assistant, a brilliant AI expert built directly into the NeuralTree dashboard. NEVER mention that you are a language model, an AI, or Gemini. You provide sharp, insightful, and sophisticated answers.
+Context: Dataset is ${data.dataset.name}. Models trained: ${Object.keys(MODELS_DATA).join(", ")}. Best model is ${best} with AUC ${data.models[best].auc}.
+CRITICAL INSTRUCTION: Keep your answers extremely concise. Do not write long paragraphs or excessive bullet points. Limit your responses to 2-3 short sentences.
+If the user asks about a topic completely unrelated to decision trees, machine learning, or this dashboard, DO NOT say "I am not trained on that" or "I cannot answer". Instead, intelligently pivot the conversation by saying something like "Are you referring to [a loosely related ML concept]?" or suggest they check a specific mathematical/programming source, while gracefully bringing the focus back to NeuralTree.`;
+
+      renderAll();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('heroModelList').innerHTML = `<div style="color:var(--accent-rose); text-align:center;">Error connecting to backend.<br>Please run 'python app.py' then 'python server.py'.</div>`;
+    }
+  }
+
+  function renderAll() {
+    renderHeroList();
+    renderCompareTable();
+    drawROCs();
+    renderAccChart();
+    renderXaiTabs();
+    renderComplexity();
+    renderRulesView();
+    initNav();
+  }
+
+  function renderHeroList() {
+    const list = document.getElementById('heroModelList');
+    list.innerHTML = '';
+    // Sort models by AUC descending
+    const sorted = Object.keys(MODELS_DATA).sort((a,b) => MODELS_DATA[b].auc - MODELS_DATA[a].auc);
+    
+    sorted.forEach(model => {
+      const aucStr = (MODELS_DATA[model].auc * 100).toFixed(1) + '%';
+      list.innerHTML += `
+        <div class="model-item">
+          <div class="model-name"><div class="model-dot"></div> ${model}</div>
+          <div class="model-metric">AUC ${aucStr}</div>
+        </div>
+      `;
+    });
+  }
+
+  function renderCompareTable() {
+    const tbody = document.getElementById('compBody');
+    tbody.innerHTML = '';
+    const sorted = Object.keys(MODELS_DATA).sort((a,b) => MODELS_DATA[b].acc - MODELS_DATA[a].acc);
+    sorted.forEach(name => {
+      const m = MODELS_DATA[name];
+      tbody.innerHTML += `<tr>
+        <td style="font-weight:500;">${name}</td>
+        <td>${(m.acc*100).toFixed(1)}%</td>
+        <td>${(m.f1*100).toFixed(1)}%</td>
+        <td style="color:var(--accent-teal); font-weight:600;">${(m.auc*100).toFixed(1)}%</td>
+        <td>${m.time_ms} ms</td>
+        <td style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-secondary);">${m.complexity}</td>
+      </tr>`;
+    });
+  }
+
+  function drawROCs() {
+    destroyChart('rocAll');
+    const ctx = document.getElementById('rocAll').getContext('2d');
+    const datasets = Object.entries(MODELS_DATA).map(([name, m], idx) => ({
+      label: name, data: m.roc_fpr.map((x,i)=>({x, y:m.roc_tpr[i]})), 
+      borderColor: `hsl(${idx * 45}, 80%, 65%)`, borderWidth: 2, fill: false, tension: 0.3, pointRadius: 0
+    }));
+    datasets.push({ label: 'Baseline', data: [{x:0,y:0},{x:1,y:1}], borderColor: '#475569', borderDash: [4,4], pointRadius: 0 });
+    
+    Chart.defaults.color = '#94A3B8';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    
+    activeChart.rocAll = new Chart(ctx, { 
+      type: 'line', data: { datasets }, 
+      options: { 
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'right', labels: { boxWidth: 12, usePointStyle: true } } }, 
+        scales: { 
+          x: { type: 'linear', min: 0, max: 1, grid: {color: '#1e294b'}, title: { display: true, text: 'False Positive Rate' } }, 
+          y: { min: 0, max: 1, grid: {color: '#1e294b'}, title: { display: true, text: 'True Positive Rate' } } 
+        } 
+      } 
+    });
+  }
+  
+  function renderAccChart() {
+    destroyChart('accChart');
+    const ctx = document.getElementById('accChart').getContext('2d');
+    const sorted = Object.keys(MODELS_DATA).sort((a,b) => MODELS_DATA[b].acc - MODELS_DATA[a].acc).slice(0, 6);
+    const accVals = sorted.map(l=>MODELS_DATA[l].acc*100);
+    
+    activeChart.accChart = new Chart(ctx, {
+      type: 'bar', data: { labels: sorted, datasets: [{ label: 'Accuracy %', data: accVals, backgroundColor: '#14B8A6', borderRadius: 4 }] },
+      options: { 
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } }, 
+        scales: { 
+          y: { min: 60, max: 100, grid: { color: '#1e294b' } }, 
+          x: { grid: { display: false } } 
+        } 
+      }
+    });
+  }
+
+  function renderXaiTabs() {
+    const container = document.getElementById('xaiModelTabs');
+    container.innerHTML = '';
+    const availableModels = Object.keys(SHAP_VALS);
+    if(availableModels.length === 0) return;
+    if(!availableModels.includes(currentXaiModel)) currentXaiModel = availableModels[0];
+    
+    availableModels.forEach(model => {
+      const btn = document.createElement('button');
+      btn.innerText = model; btn.className = `model-tab ${currentXaiModel === model ? 'active' : ''}`;
+      btn.onclick = () => { currentXaiModel = model; renderXaiTabs(); };
+      container.appendChild(btn);
+    });
+    renderShapBars();
+  }
+
+  function renderShapBars() {
+    const shapMap = SHAP_VALS[currentXaiModel];
+    if(!shapMap) return;
+    const container = document.getElementById('shapContainer');
+    container.innerHTML = '';
+    const maxVal = Math.max(...Object.values(shapMap));
+    
+    for(const [feat, val] of Object.entries(shapMap)) {
+      const percent = (val / maxVal) * 100;
+      container.innerHTML += `
+        <div style="margin-bottom: 1rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom: 6px; font-size:0.85rem;">
+            <span>${feat}</span><span style="font-family:var(--font-mono); color:var(--text-secondary);">${val.toFixed(3)}</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.05); border-radius:4px; height:6px; overflow:hidden;">
+            <div style="width: ${percent}%; background: linear-gradient(90deg, var(--accent-teal), var(--accent-indigo)); height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>
+          </div>
+        </div>`;
+    }
+  }
+
+  function renderComplexity() {
+    const grid = document.getElementById('complexityGrid');
+    let fastestMod = Object.keys(MODELS_DATA).reduce((a,b)=> MODELS_DATA[a].time_ms < MODELS_DATA[b].time_ms ? a : b);
+    
+    grid.innerHTML = `
+    <div class="glass-card">
+      <div class="card-header"><i class="fa-solid fa-bolt"></i> Speed Champion</div>
+      <div style="font-size: 2rem; font-weight:700; color:var(--text-primary); margin-bottom: 0.5rem;">${fastestMod}</div>
+      <div style="color:var(--accent-teal); font-family:var(--font-mono);"><i class="fa-solid fa-stopwatch"></i> ${MODELS_DATA[fastestMod].time_ms} ms</div>
+    </div>
+    <div class="glass-card">
+      <div class="card-header"><i class="fa-solid fa-book-open"></i> Big-O Bounds</div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; font-family:var(--font-mono); font-size:0.85rem; color:var(--text-secondary);">
+        <div><span style="color:white;">CART:</span> O(n·log n)</div>
+        <div><span style="color:white;">ID3:</span> O(d·n·log n)</div>
+        <div><span style="color:white;">XGBoost:</span> O(T·n·log n)</div>
+        <div><span style="color:white;">MARS:</span> O(n·p²)</div>
+      </div>
+    </div>`;
+    
+    destroyChart('timeChart');
+    const times = Object.values(MODELS_DATA).map(m=>m.time_ms);
+    const ctx = document.getElementById('timeChart').getContext('2d');
+    activeChart.timeChart = new Chart(ctx, { 
+      type: 'bar', data: { labels: Object.keys(MODELS_DATA), datasets: [{ label: 'Training time (ms)', data: times, backgroundColor: '#6366F1', borderRadius: 4 }] }, 
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#1e294b' } }, x: { grid: { display: false } } } } 
+    });
+  }
+
+  function renderRulesView() {
+    const rulesDiv = document.getElementById('rulesContent');
+    let txt = "";
+    Object.keys(RULES_TXT).forEach(m => {
+        txt += `// === ${m} Model Extraction ===\n${RULES_TXT[m]}\n\n`;
+    });
+    rulesDiv.innerHTML = `<pre style="font-family: var(--font-mono); font-size: 0.85rem; color: #818cf8; white-space: pre-wrap; margin:0;">${txt || "No rules extracted."}</pre>`;
+  }
+
+  // Gemini Chatbot Integration
+  async function sendMessage() {
+    const inputField = document.getElementById('chatInput');
+    const input = inputField.value.trim();
+    if (!input) return;
+    
+    const chatDiv = document.getElementById('chatMessages');
+    chatDiv.innerHTML += `<div class="msg-user">${input}</div>`;
+    inputField.value = '';
+    
+    const typingId = 'typing-' + Date.now();
+    chatDiv.innerHTML += `<div id="${typingId}" class="msg-ai"><i class="fa-solid fa-circle-notch fa-spin" style="color: var(--text-secondary);"></i></div>`;
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+    
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input, history: geminiSystemPrompt })
+      });
+      
+      document.getElementById(typingId).remove();
+      if (!response.ok) {
+         let errData = "Server error";
+         try { const j = await response.json(); errData = j.error || errData; } catch(e){}
+         throw new Error(errData);
+      }
+      
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'msg-ai';
+      chatDiv.appendChild(msgDiv);
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let fullReply = "";
+      let buffer = "";
+      
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // Keep incomplete line in buffer
+        
+        for (let line of lines) {
+          line = line.trim();
+          if (!line) continue;
+          
+          let dataStr = line;
+          if (line.startsWith('data:')) {
+            dataStr = line.slice(5).trim();
+          }
+          
+          if (dataStr === '[DONE]' || dataStr === '[' || dataStr === ',' || dataStr === ']') continue;
+          
+          try {
+            const dataObj = JSON.parse(dataStr);
+            if (dataObj.candidates && dataObj.candidates.length > 0) {
+              const parts = dataObj.candidates[0].content?.parts;
+              if (parts && parts.length > 0) {
+                const textChunk = parts[0].text || "";
+                fullReply += textChunk;
+                
+                let safeReply = fullReply.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                const formattedReply = safeReply.replace(/\*\*(.*?)\*\*/g, '<b style="color:white;">$1</b>').replace(/\n/g, '<br>');
+                
+                msgDiv.innerHTML = `<i class="fa-solid fa-robot" style="margin-right: 5px; color: var(--accent-teal);"></i> ${formattedReply}`;
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+              }
+            }
+          } catch(e) {
+            // If it fails to parse cleanly, it might be a raw chunk (e.g. Google didn't send SSE)
+            if (dataStr.length > 5 && !dataStr.includes('content')) {
+              fullReply += dataStr;
+              msgDiv.innerHTML = `<i class="fa-solid fa-robot" style="margin-right: 5px; color: var(--accent-teal);"></i> <span style="color:var(--text-secondary);">${fullReply}</span>`;
+            }
+          }
+        }
+      }
+    } catch (e) { 
+      document.getElementById(typingId)?.remove();
+      chatDiv.innerHTML += `<div class="msg-ai" style="border-color:var(--accent-rose); color:var(--accent-rose);"><i class="fa-solid fa-triangle-exclamation"></i> Error: ${e.message}</div>`; 
+    }
+  }
+
+  // Navigation Logic
+  function initNav() {
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const sectionId = link.getAttribute('data-section');
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        document.getElementById(sectionId).classList.add('active');
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  }
+
+  // Background Canvas Animation
+  const canvas = document.getElementById('bgCanvas');
+  const ctxBg = canvas.getContext('2d');
+  let dots = [];
+  function resizeCanvas() { 
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
+    initDots();
+  }
+  function initDots() {
+    dots = [];
+    for(let i=0; i<80; i++) {
+      dots.push({
+        x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+        radius: Math.random() * 1.5 + 0.5
+      });
+    }
+  }
+  function drawBg() { 
+    if(!ctxBg) return; 
+    ctxBg.clearRect(0,0,canvas.width,canvas.height); 
+    
+    dots.forEach(dot => {
+      dot.x += dot.vx; dot.y += dot.vy;
+      if(dot.x < 0 || dot.x > canvas.width) dot.vx *= -1;
+      if(dot.y < 0 || dot.y > canvas.height) dot.vy *= -1;
+      
+      ctxBg.beginPath();
+      ctxBg.arc(dot.x, dot.y, dot.radius, 0, Math.PI*2);
+      ctxBg.fillStyle = 'rgba(20, 184, 166, 0.3)';
+      ctxBg.fill();
+    });
+    
+    // Draw connecting lines if close
+    ctxBg.strokeStyle = 'rgba(99, 102, 241, 0.05)';
+    for(let i=0; i<dots.length; i++) {
+      for(let j=i+1; j<dots.length; j++) {
+        const dx = dots[i].x - dots[j].x;
+        const dy = dots[i].y - dots[j].y;
+        if(dx*dx + dy*dy < 15000) {
+          ctxBg.beginPath();
+          ctxBg.moveTo(dots[i].x, dots[i].y);
+          ctxBg.lineTo(dots[j].x, dots[j].y);
+          ctxBg.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(drawBg); 
+  }
+  
+  window.addEventListener('resize', resizeCanvas); 
+  resizeCanvas(); 
+  drawBg();
+
+  // Chatbot Events
+  document.getElementById('chatFab').addEventListener('click', () => document.getElementById('chatPanel').classList.toggle('open'));
+  document.getElementById('closeChat').addEventListener('click', () => document.getElementById('chatPanel').classList.remove('open'));
+  document.getElementById('sendChatBtn').addEventListener('click', sendMessage);
+  document.getElementById('chatInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+
+  // Init
+  loadData();
+</script>
+
+</body>
+</html>
